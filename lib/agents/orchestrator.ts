@@ -7,10 +7,7 @@ import { AgentProposal, AgentType, KnowledgeNode, KnowledgeEdge } from '@/lib/ty
 import { IStorageAdapter } from '@/lib/storage/adapter';
 import { getStorageAdapter } from '@/lib/storage/factory';
 import { IngestionAgent } from './ingestion-agent';
-import { AlignmentAgent } from './alignment-agent';
-import { ContradictionAgent } from './contradiction-agent';
-import { CurriculumAgent } from './curriculum-agent';
-import { ResearchAgent } from './research-agent';
+import { AlignmentAgent, ContradictionAgent, CurriculumAgent, ResearchAgent } from './other-agents';
 
 export interface AgentConfig {
   auto_approve_confidence: number; // Auto-approve proposals above this confidence

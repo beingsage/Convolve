@@ -45,9 +45,6 @@ export default function QueryPage() {
                 Graph
               </Link>
             </nav>
-                Paths
-              </Link>
-            </nav>
           </div>
         </div>
       </header>
