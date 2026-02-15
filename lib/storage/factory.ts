@@ -63,8 +63,8 @@ export async function getStorageAdapter(): Promise<IStorageAdapter> {
 
     console.log(`[UAILS] Storage adapter initialized successfully (${config.type})`);
     
-    // Seed demo data for in-memory and neo4j storage
-    if (config.type === 'memory' || config.type === 'neo4j') {
+    // Seed demo data for in-memory, neo4j, and hybrid storage
+    if (config.type === 'memory' || config.type === 'neo4j' || config.type === 'hybrid') {
       await seedDemoData(storageInstance);
     }
     

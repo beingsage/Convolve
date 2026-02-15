@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uails-langgraph-service"
+version = "0.1.0"
+description = "LangGraph service for UAILS knowledge processing"
+authors = [
+    {name = "UAILS Team"}
+]
+dependencies = [
+    "langgraph==0.1.0",
+    "langchain==0.1.0",
+    "langchain-openai==0.1.0",
+    "neo4j==5.18.0",
+    "qdrant-client==1.7.0",
+    "fastapi==0.104.1",
+    "uvicorn==0.24.0",
+    "pydantic==2.5.0",
+    "python-dotenv==1.0.0",
+    "httpx==0.25.0"
+]
+
+[project.scripts]
+start-service = "main:main"
+
+[tool.setuptools]
+packages = ["."]

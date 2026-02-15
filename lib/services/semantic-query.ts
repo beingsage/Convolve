@@ -16,6 +16,12 @@ import { getStorageAdapter } from '@/lib/storage/factory';
 export class SemanticQueryEngine {
   private storage: IStorageAdapter | null = null;
 
+  constructor(storage?: IStorageAdapter) {
+    if (storage) {
+      this.storage = storage;
+    }
+  }
+
   async initialize() {
     this.storage = await getStorageAdapter();
   }

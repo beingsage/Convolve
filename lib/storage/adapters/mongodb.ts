@@ -138,6 +138,18 @@ export class MongoDBAdapter implements IStorageAdapter {
     return this.edges.delete(id);
   }
 
+  async listEdges(page: number, limit: number): Promise<PaginatedResponse<KnowledgeEdge>> {
+    const items = Array.from(this.edges.values());
+    const start = (page - 1) * limit;
+    return {
+      items: items.slice(start, start + limit),
+      total: items.length,
+      page,
+      limit,
+      has_more: start + limit < items.length,
+    };
+  }
+
   async getPath(fromId: string, toId: string, maxDepth: number): Promise<KnowledgeEdge[]> {
     // BFS pathfinding
     const visited = new Set<string>();

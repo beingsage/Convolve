@@ -4,8 +4,8 @@
  */
 
 import { QdrantClient } from '@qdrant/js-client-rest';
-import {
-  IStorageAdapter,
+import { IStorageAdapter } from '@/lib/storage/adapter';
+import type {
   KnowledgeNode,
   KnowledgeEdge,
   VectorPayload,
@@ -34,8 +34,8 @@ export class QdrantAdapter implements IStorageAdapter {
         apiKey: this.config.credentials?.password,
       });
 
-      // Test connection
-      await this.client.healthCheck();
+      // Test connection by trying to list collections
+      await this.client.getCollections();
 
       this.connected = true;
       console.log('[Qdrant] Storage adapter initialized');
@@ -897,5 +897,81 @@ export class QdrantAdapter implements IStorageAdapter {
 
   async rollback(): Promise<void> {
     // Qdrant doesn't support transactions
+  }
+
+  // ============================================================================
+  // Hybrid Adapter Support Methods
+  // These methods are used by HybridAdapter for combined storage
+  // ============================================================================
+
+  async storeEmbedding(
+    id: string,
+    embedding: number[],
+    metadata: Record<string, unknown>
+  ): Promise<void> {
+    if (!this.client) throw new Error('Qdrant client not initialized');
+
+    await this.client.upsert('knowledge_nodes', {
+      wait: true,
+      points: [
+        {
+          id,
+          vector: embedding,
+          payload: {
+            ...metadata,
+            has_embedding: true,
+            updated_at: new Date().toISOString(),
+          },
+        },
+      ],
+    });
+  }
+
+  async getEmbedding(id: string): Promise<{ vector: number[]; metadata: Record<string, unknown> } | null> {
+    if (!this.client) throw new Error('Qdrant client not initialized');
+
+    const result = await this.client.retrieve('knowledge_nodes', {
+      ids: [id],
+    });
+
+    if (result.length === 0) return null;
+
+    return {
+      vector: result[0].vector as number[],
+      metadata: result[0].payload || {},
+    };
+  }
+
+  async deleteEmbedding(id: string): Promise<void> {
+    if (!this.client) throw new Error('Qdrant client not initialized');
+
+    // Delete the point (which contains the embedding)
+    await this.client.delete('knowledge_nodes', {
+      wait: true,
+      points: [id],
+    });
+  }
+
+  // Additional helper for getting stats
+  async getStats(): Promise<Record<string, unknown>> {
+    if (!this.client) throw new Error('Qdrant client not initialized');
+
+    try {
+      const collections = await this.client.getCollections();
+      const stats: Record<string, unknown> = {};
+
+      for (const collection of collections.collections || []) {
+        const info = await this.client.getCollection(collection.name);
+        stats[collection.name] = {
+          vectors_count: info.vectors_count,
+          points_count: info.points_count,
+          status: info.status,
+        };
+      }
+
+      return stats;
+    } catch (error) {
+      return { error: String(error) };
+    }
   }
 }

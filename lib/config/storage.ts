@@ -10,7 +10,7 @@ import { StorageType, StorageConfig, UAILSConfig, DecayConfig } from '@/lib/type
 // ============================================================================
 
 export function getStorageType(): StorageType {
-  const type = process.env.STORAGE_TYPE || 'memory';
+  const type = process.env.STORAGE_TYPE || 'hybrid'; // Default to hybrid
   return type as StorageType;
 }
 
@@ -52,6 +52,24 @@ export function getStorageConfig(): StorageConfig {
       return {
         type: 'postgres',
         connection_string: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/uails',
+      };
+    
+    case 'hybrid':
+      return {
+        type: 'hybrid',
+        qdrant: {
+          connection_string: process.env.QDRANT_URL || 'http://localhost:6333',
+          credentials: {
+            password: process.env.QDRANT_API_KEY,
+          },
+        },
+        neo4j: {
+          connection_string: process.env.NEO4J_URI || 'neo4j://localhost:7687',
+          credentials: {
+            username: process.env.NEO4J_USERNAME || 'neo4j',
+            password: process.env.NEO4J_PASSWORD || 'password',
+          },
+        },
       };
     
     case 'memory':
@@ -150,9 +168,19 @@ export function validateStorageConfig(): { valid: boolean; errors: string[] } {
       }
       break;
 
-    case 'postgres':
-      if (!process.env.DATABASE_URL) {
-        errors.push('DATABASE_URL environment variable required');
+    case 'hybrid':
+      // Hybrid storage requires both Qdrant and Neo4j
+      if (!process.env.QDRANT_URL) {
+        errors.push('QDRANT_URL environment variable required for hybrid storage');
+      }
+      if (!process.env.NEO4J_URI) {
+        errors.push('NEO4J_URI environment variable required for hybrid storage');
+      }
+      if (!process.env.NEO4J_USERNAME) {
+        errors.push('NEO4J_USERNAME environment variable required for hybrid storage');
+      }
+      if (!process.env.NEO4J_PASSWORD) {
+        errors.push('NEO4J_PASSWORD environment variable required for hybrid storage');
       }
       break;
 

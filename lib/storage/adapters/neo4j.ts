@@ -4,8 +4,8 @@
  */
 
 import neo4j, { Driver, Session, Result } from 'neo4j-driver';
-import {
-  IStorageAdapter,
+import { IStorageAdapter } from '@/lib/storage/adapter';
+import type {
   KnowledgeNode,
   KnowledgeEdge,
   VectorPayload,
@@ -280,14 +280,15 @@ export class Neo4jAdapter implements IStorageAdapter {
     try {
       const result = await session.run(
         `
-        MATCH (from:KnowledgeNode {id: $from_node_id})
-        MATCH (to:KnowledgeNode {id: $to_node_id})
+        MATCH (from:KnowledgeNode {id: $from_node})
+        MATCH (to:KnowledgeNode {id: $to_node})
         CREATE (from)-[e:KnowledgeEdge {
           id: $id,
-          relation_type: $relation_type,
-          strength: $strength,
-          direction: $direction,
-          context: $context,
+          from_node: $from_node,
+          to_node: $to_node,
+          relation: $relation,
+          weight: $weight,
+          dynamics: $dynamics,
           temporal: $temporal,
           confidence: $confidence,
           created_at: datetime($created_at),
@@ -297,12 +298,11 @@ export class Neo4jAdapter implements IStorageAdapter {
         `,
         {
           id: edge.id,
-          from_node_id: edge.from_node_id,
-          to_node_id: edge.to_node_id,
-          relation_type: edge.relation_type,
-          strength: edge.strength,
-          direction: edge.direction,
-          context: edge.context,
+          from_node: edge.from_node,
+          to_node: edge.to_node,
+          relation: edge.relation,
+          weight: edge.weight,
+          dynamics: edge.dynamics,
           temporal: edge.temporal,
           confidence: edge.confidence,
           created_at: edge.created_at?.toISOString() || new Date().toISOString(),
@@ -713,14 +713,15 @@ export class Neo4jAdapter implements IStorageAdapter {
       for (const edge of edges) {
         const result = await session.run(
           `
-          MATCH (from:KnowledgeNode {id: $from_node_id})
-          MATCH (to:KnowledgeNode {id: $to_node_id})
+          MATCH (from:KnowledgeNode {id: $from_node})
+          MATCH (to:KnowledgeNode {id: $to_node})
           CREATE (from)-[e:KnowledgeEdge {
             id: $id,
-            relation_type: $relation_type,
-            strength: $strength,
-            direction: $direction,
-            context: $context,
+            from_node: $from_node,
+            to_node: $to_node,
+            relation: $relation,
+            weight: $weight,
+            dynamics: $dynamics,
             temporal: $temporal,
             confidence: $confidence,
             created_at: datetime($created_at),
@@ -730,12 +731,11 @@ export class Neo4jAdapter implements IStorageAdapter {
           `,
           {
             id: edge.id,
-            from_node_id: edge.from_node_id,
-            to_node_id: edge.to_node_id,
-            relation_type: edge.relation_type,
-            strength: edge.strength,
-            direction: edge.direction,
-            context: edge.context,
+            from_node: edge.from_node,
+            to_node: edge.to_node,
+            relation: edge.relation,
+            weight: edge.weight,
+            dynamics: edge.dynamics,
             temporal: edge.temporal,
             confidence: edge.confidence,
             created_at: edge.created_at?.toISOString() || new Date().toISOString(),
@@ -801,16 +801,16 @@ export class Neo4jAdapter implements IStorageAdapter {
     const properties = edge.properties;
     return {
       id: properties.id,
-      from_node_id: properties.from_node_id || edge.startNodeElementId,
-      to_node_id: properties.to_node_id || edge.endNodeElementId,
-      relation_type: properties.relation_type,
-      strength: properties.strength,
-      direction: properties.direction,
-      context: properties.context,
+      from_node: properties.from_node,
+      to_node: properties.to_node,
+      relation: properties.relation,
+      weight: properties.weight,
+      dynamics: properties.dynamics,
       temporal: properties.temporal,
       confidence: properties.confidence,
       created_at: new Date(properties.created_at),
       updated_at: new Date(properties.updated_at),
+      conflicting: properties.conflicting
     };
   }
 

@@ -1,13 +1,10 @@
 /**
  * POST /api/ingest
- * Ingest documents into the knowledge system
+ * Ingest documents into the knowledge system using LangGraph workflows
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getStorageAdapter } from '@/lib/storage/factory';
-import { createIngestionPipeline } from '@/lib/services/ingestion-complete';
-import { DocumentMetadata } from '@/lib/services/ingestion-complete';
-import { v4 as uuidv4 } from 'uuid';
+import { getLangGraphClient } from '@/lib/agents/langgraph-client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,109 +17,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const storage = await getStorageAdapter();
-    const pipeline = createIngestionPipeline();
+    const langGraphClient = getLangGraphClient();
 
-    // Metadata for document
-    const metadata: DocumentMetadata = {
+    // Prepare metadata
+    const metadata = {
       title,
       authors: authors || [],
       year: year || new Date().getFullYear(),
       url,
-      source_tier: source_tier as any,
+      source_tier,
+      ingested_at: new Date().toISOString()
     };
 
-    console.log(`[API /ingest] Starting ingestion of "${title}"`);
+    console.log(`[API /ingest] Starting LangGraph ingestion workflow for "${title}"`);
 
-    // Run ingestion pipeline
-    const { sections, claims, concepts, chunks } = await pipeline.ingestDocument(
+    // Start LangGraph ingestion workflow
+    const result = await langGraphClient.ingestKnowledge({
       content,
-      metadata
-    );
+      metadata,
+      source: url || 'api'
+    });
 
-    // Store chunks
-    const storedChunks = [];
-    for (const chunk of chunks) {
-      try {
-        const stored = await storage.storeChunk(chunk);
-        storedChunks.push(stored);
-      } catch (error) {
-        console.warn(`Failed to store chunk ${chunk.id}:`, error);
-      }
-    }
-
-    // Create nodes for extracted concepts
-    const createdNodes = [];
-    for (const concept of concepts) {
-      try {
-        const node = {
-          id: uuidv4(),
-          type: 'concept' as const,
-          name: concept,
-          description: `Extracted from: ${title}`,
-          level: {
-            abstraction: 0.4,
-            difficulty: 0.5,
-            volatility: 0.2,
-          },
-          cognitive_state: {
-            strength: 0.6,
-            activation: 0.7,
-            decay_rate: 0.01,
-            confidence: 0.7,
-          },
-          temporal: {
-            introduced_at: new Date(),
-            last_reinforced_at: new Date(),
-            peak_relevance_at: new Date(),
-          },
-          real_world: {
-            used_in_production: false,
-            companies_using: 0,
-            avg_salary_weight: 0,
-            interview_frequency: 0,
-          },
-          grounding: {
-            source_refs: [url || title],
-            implementation_refs: [],
-          },
-          failure_surface: {
-            common_bugs: [],
-            misconceptions: [],
-          },
-          created_at: new Date(),
-          updated_at: new Date(),
-        };
-
-        const created = await storage.createNode(node);
-        createdNodes.push(created);
-      } catch (error) {
-        console.warn(`Failed to create node for ${concept}:`, error);
-      }
-    }
+    console.log(`[API /ingest] Ingestion workflow started: ${result.workflow_id}`);
 
     return NextResponse.json({
       success: true,
-      document: {
-        title,
-        sections: sections.length,
-        claims: claims.length,
-        concepts: concepts.length,
-      },
-      ingestion: {
-        chunks_stored: storedChunks.length,
-        nodes_created: createdNodes.length,
-      },
-      concepts,
-      timestamp: new Date(),
+      workflow_id: result.workflow_id,
+      status: result.status,
+      message: 'Ingestion workflow started successfully'
     });
   } catch (error) {
     console.error('[API /ingest] Error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

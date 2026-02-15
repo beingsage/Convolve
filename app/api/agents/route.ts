@@ -1,49 +1,63 @@
 /**
  * Agents API Endpoints
- * POST /api/agents/run - Run specific agent
- * POST /api/agents/workflow - Run full workflow
+ * POST /api/agents/run - Run specific agent (legacy)
+ * POST /api/agents/workflow - Run LangGraph workflow
  * GET  /api/agents/proposals - List proposals
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAgentOrchestrator } from '@/lib/agents/orchestrator';
+import { getLangGraphClient } from '@/lib/agents/langgraph-client';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, agent_type, content, metadata } = body;
+    const { action, content, metadata, query, context } = body;
 
-    const orchestrator = await getAgentOrchestrator();
+    const langGraphClient = getLangGraphClient();
 
     let result;
 
-    if (action === 'workflow') {
-      // Run full workflow
-      result = await orchestrator.runFullWorkflow();
-    } else if (action === 'ingest') {
-      // Run ingestion agent
-      if (!content || !metadata?.title) {
+    if (action === 'ingest') {
+      // Run knowledge ingestion workflow
+      if (!content) {
         return NextResponse.json(
-          { error: 'content and metadata.title required for ingest' },
+          { error: 'content required for ingest' },
           { status: 400 }
         );
       }
-      result = await orchestrator.runIngestionAgent(content, metadata);
-    } else if (action === 'align') {
-      // Run alignment agent
-      result = await orchestrator.runAlignmentAgent();
-    } else if (action === 'contradict') {
-      // Run contradiction agent
-      result = await orchestrator.runContradictionAgent();
-    } else if (action === 'curriculum') {
-      // Run curriculum agent
-      result = await orchestrator.runCurriculumAgent(body.user_known_nodes || []);
-    } else if (action === 'research') {
-      // Run research agent
-      result = await orchestrator.runResearchAgent();
+
+      result = await langGraphClient.ingestKnowledge({
+        content,
+        metadata,
+        source: metadata?.source
+      });
+    } else if (action === 'reason') {
+      // Run reasoning workflow
+      if (!query) {
+        return NextResponse.json(
+          { error: 'query required for reasoning' },
+          { status: 400 }
+        );
+      }
+
+      result = await langGraphClient.reasonQuery({
+        query,
+        context
+      });
+    } else if (action === 'workflow_status') {
+      // Get workflow status
+      const { workflow_id } = body;
+      if (!workflow_id) {
+        return NextResponse.json(
+          { error: 'workflow_id required' },
+          { status: 400 }
+        );
+      }
+
+      result = await langGraphClient.getWorkflowStatus(workflow_id);
     } else {
       return NextResponse.json(
-        { error: 'Unknown action. Valid actions: workflow, ingest, align, contradict, curriculum, research' },
+        { error: 'Unknown action. Valid actions: ingest, reason, workflow_status' },
         { status: 400 }
       );
     }

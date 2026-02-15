@@ -49,6 +49,7 @@ IStorageAdapter (interface)
     ├── Neo4jAdapter (graph, relationships)
     ├── QdrantAdapter (vectors, similarity)
     └── PostgresAdapter (relational, normalized)
+    └── HybridAdapter (combined)
 ```
 
 **Singleton Pattern:**
@@ -105,6 +106,13 @@ Consolidation:
 - Similarity detection
 - Filtering (difficulty, abstraction, source tier)
 
+#### Reasoning Engine
+- BFS pathfinding
+- Transitive closure
+- Dependency analysis
+- Curriculum generation
+- Concept explanation
+
 ### 4. Agent Layer (`/lib/agents/`)
 
 **AgentOrchestrator**
@@ -136,7 +144,7 @@ Consolidation:
 
 ┌─────────────────────────────────────────────┐
 │ Contradiction Agent                         │
-│ Detects conflicting edges (COMPETES_WITH)  │
+│ Detects conflicting edges (COMPETES_WITH)   │
 │ Marks with conflict flag                    │
 │ Confidence: 0.70-0.90                       │
 │ Trigger: Scheduled                          │
@@ -147,7 +155,7 @@ Consolidation:
 │ Curriculum Agent                            │
 │ Generates learning paths                    │
 │ Detects prerequisites                       │
-│ Confidence: 0.80-0.85                       │
+│ Confidence: 0.80-0.85                      │
 │ Trigger: User request                       │
 └─────────────────────────────────────────────┘
          ↓ (recommends next concepts)
@@ -202,21 +210,13 @@ Agent → Generate Proposal
 /                 (Home, navigation)
 /query            (Semantic search)
 /graph            (Graph explorer)
-/skills           (Skill heatmap)
-/paths            (Learning paths)
 ```
 
 **Tech Stack:**
-- Next.js 16 App Router
+- Next.js 14 App Router
 - React 19 with hooks
 - SWR for client-side data fetching
 - Tailwind CSS v4
-- Minimalist design (no heavy components)
-
-**State Management:**
-- SWR for API caching
-- React hooks for local state
-- No Redux/Zustand (keep it light)
 
 ## Data Flow Examples
 
@@ -335,6 +335,21 @@ const storage = await getStorageAdapter(); // Automatically uses MongoDB
 - ⚠️ Not ideal for graph structure
 - Use: As supplementary index with primary storage
 
+### Hybrid (Recommended for Production)
+- Combines Neo4j (graph) + MongoDB (documents) + Qdrant (vectors)
+- Optimal for all operation types
+- Requires all three backends configured
+
+## Performance Benchmarks (Expected)
+
+| Operation | In-Memory | MongoDB | Neo4j |
+|-----------|-----------|---------|-------|
+| Create node | 0.1ms | 5ms | 10ms |
+| Search (100 nodes) | 1ms | 20ms | 30ms |
+| Path finding (5 hops) | 5ms | 100ms | 20ms |
+| Decay calculation (1000 nodes) | 50ms | 500ms | 300ms |
+| Query API response | 2ms | 30ms | 40ms |
+
 ## Testing Strategy
 
 ```
@@ -354,16 +369,6 @@ End-to-End Tests
   └─ Frontend + Backend
 ```
 
-## Performance Benchmarks (Expected)
-
-| Operation | In-Memory | MongoDB | Neo4j |
-|-----------|-----------|---------|-------|
-| Create node | 0.1ms | 5ms | 10ms |
-| Search (100 nodes) | 1ms | 20ms | 30ms |
-| Path finding (5 hops) | 5ms | 100ms | 20ms |
-| Decay calculation (1000 nodes) | 50ms | 500ms | 300ms |
-| Query API response | 2ms | 30ms | 40ms |
-
 ## Security Considerations
 
 - ✅ SQL injection: Parameterized queries (storage layer)
@@ -372,6 +377,31 @@ End-to-End Tests
 - ⚠️ Authorization: None (add if needed)
 - ⚠️ Rate limiting: None (add if needed)
 - ⚠️ CORS: Default allows all origins
+
+## LangGraph Service (`/langgraph-service/`)
+
+Python microservice for advanced agent workflows:
+
+```
+langgraph-service/
+├── main.py                 # FastAPI entry point
+├── agents/
+│   ├── ingestion.py       # Document processing
+│   └── other_agents.py    # Reasoning workflows
+├── workflows/
+│   ├── knowledge_workflow.py
+│   └── reasoning_workflow.py
+├── storage/
+│   ├── neo4j_client.py
+│   └── qdrant_client.py
+└── models/
+    └── state.py           # Shared state definitions
+```
+
+**Endpoints:**
+- `/ingest` - Process documents with LLM
+- `/reasoning` - Multi-step reasoning
+- `/health` - Service health check
 
 ## Future Extensions
 
@@ -399,3 +429,4 @@ End-to-End Tests
 - Share concepts with others
 - Rate quality
 - Decentralized storage
+

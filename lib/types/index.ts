@@ -293,7 +293,7 @@ export interface DecayState {
 // Configuration Types
 // ============================================================================
 
-export type StorageType = 'mongodb' | 'neo4j' | 'qdrant' | 'postgres' | 'memory';
+export type StorageType = 'mongodb' | 'neo4j' | 'qdrant' | 'postgres' | 'memory' | 'hybrid';
 
 export interface StorageConfig {
   type: StorageType;
@@ -303,6 +303,20 @@ export interface StorageConfig {
     password?: string;
   };
   options?: Record<string, unknown>;
+  // Hybrid storage configuration
+  qdrant?: {
+    connection_string: string;
+    credentials?: {
+      password?: string;
+    };
+  };
+  neo4j?: {
+    connection_string: string;
+    credentials: {
+      username: string;
+      password: string;
+    };
+  };
 }
 
 export interface UAILSConfig {

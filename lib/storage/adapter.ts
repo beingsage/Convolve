@@ -3,7 +3,7 @@
  * Enables pluggable backends: MongoDB, Neo4j, Qdrant, PostgreSQL, In-Memory
  */
 
-import {
+import type {
   KnowledgeNode,
   KnowledgeEdge,
   VectorPayload,
@@ -16,6 +16,7 @@ import { InMemoryAdapter } from './adapters/memory';
 import { MongoDBAdapter } from './adapters/mongodb';
 import { Neo4jAdapter } from './adapters/neo4j';
 import { QdrantAdapter } from './adapters/qdrant';
+import { HybridAdapter } from './hybrid-adapter';
 
 export interface IStorageAdapter {
   // ============================================================================
@@ -239,6 +240,8 @@ export function createStorageAdapter(type: StorageType, config: any): IStorageAd
       return new Neo4jAdapter(config);
     case 'qdrant':
       return new QdrantAdapter(config);
+    case 'hybrid':
+      return new HybridAdapter(config);
     case 'postgres':
       // Fallback to in-memory for unimplemented adapters
       console.warn(`[UAILS] ${type} adapter not fully implemented, falling back to in-memory storage`);

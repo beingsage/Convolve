@@ -3,7 +3,7 @@
  * Handles: parsing → chunking → claim extraction → concept tagging → embedding
  */
 
-import { v4 as uuidv4 } from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import { DocumentChunk, Document, SourceTier, ClaimType } from '@/lib/types';
 
 export interface IngestionConfig {
@@ -94,6 +94,23 @@ export class IngestionPipeline {
   private chunkContent(content: string, sourceId: string): DocumentChunk[] {
     const chunks: DocumentChunk[] = [];
     const { chunk_size, overlap } = this.config;
+    
+    // Handle empty document case
+    if (content.length === 0) {
+      const chunk: DocumentChunk = {
+        id: uuidv4(),
+        content: '',
+        source_id: sourceId,
+        section: 'introduction',
+        claim_type: 'unknown',
+        extracted_concepts: [],
+        confidence: 0.8,
+        created_at: new Date(),
+      };
+      chunks.push(chunk);
+      return chunks;
+    }
+    
     let startIdx = 0;
 
     while (startIdx < content.length) {
